@@ -1,27 +1,39 @@
+import os
 import yt_dlp
+from django.conf import settings
 
-def get_video_info(search_text):
-    # خيارات البحث في yt-dlp
+def download_song_local(query):
+    # إنشاء مجلد media/songs لو مش موجود
+    media_songs_dir = os.path.join(settings.MEDIA_ROOT, 'songs')
+    os.makedirs(media_songs_dir, exist_ok=True)
+
     ydl_opts = {
-        'format': 'bestaudio/best', # نختار أفضل جودة صوت
-        'noplaylist': True,          # نأخذ فيديو واحد مش قائمة تشغيل
-        'quiet': True,              # ما تطبعش تفاصيل كثيرة في الـ Terminal
+        'format': 'bestaudio/best',
+        'outtmpl': os.path.join(media_songs_dir, '%(id)s.%(ext)s'),
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'noplaylist': True,
+        'quiet': True,
+        'js_runtimes': {
+            'deno': {}
+        },
     }
-    
-    # الكلمة "ytsearch1:" بتخلي yt-dlp يبحث ويرجع نتيجة واحدة بس
-    search_query = f"ytsearch1:{search_text}"
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        # extract_flat=False بيجيب كل المعلومات بما فيها رابط البث المباشر (url)
-        info = ydl.extract_info(search_query, download=False)
-        
-        if 'entries' in info and len(info['entries']) > 0:
-            first_result = info['entries'][0]
+        try:
+            info = ydl.extract_info(f"ytsearch1:{query}", download=True)['entries'][0]
+            video_id = info['id']
+            file_relative_path = f"songs/{video_id}.mp3"
             
             return {
-                'id': first_result.get('id'),
-                'title': first_result.get('title'),
-                'stream_url': first_result.get('url'), # رابط الصوت المباشر
+                'id': video_id,
+                'title': info['title'],
+                'file_url': f"{settings.MEDIA_URL}{file_relative_path}",
+                'relative_path': file_relative_path
             }
-            
-    return None
+        except Exception as e:
+            print("Error downloading audio:", e)
+            return None
