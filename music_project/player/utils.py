@@ -3,13 +3,13 @@ import yt_dlp
 from django.conf import settings
 
 def download_song_local(query):
-    # إنشاء مجلد media/songs لو مش موجود
     media_songs_dir = os.path.join(settings.MEDIA_ROOT, 'songs')
     os.makedirs(media_songs_dir, exist_ok=True)
 
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': os.path.join(media_songs_dir, '%(id)s.%(ext)s'),
+        'ffmpeg_location': '/usr/bin',  # تحديد مكان ffprobe و ffmpeg المباشر
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -17,9 +17,7 @@ def download_song_local(query):
         }],
         'noplaylist': True,
         'quiet': True,
-        'js_runtimes': {
-            'deno': {}
-        },
+        'remote_components': ['ejs:github'],
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -31,7 +29,7 @@ def download_song_local(query):
             return {
                 'id': video_id,
                 'title': info['title'],
-                'file_url': f"{settings.MEDIA_URL}{file_relative_path}",
+                'file_url': f"/media/songs/{video_id}.mp3",
                 'relative_path': file_relative_path
             }
         except Exception as e:
