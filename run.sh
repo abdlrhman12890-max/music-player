@@ -5,7 +5,6 @@ set -e
 
 echo "🔍 [1/5] جاري فحص وتثبيت التقنيات والأدوات على النظام..."
 
-# قائمة الحزم الأساسية المطلوبة من نظام التشغيل
 REQUIRED_PACKAGES=("python3" "python3-pip" "python3-venv" "ffmpeg" "nodejs" "curl")
 MISSING_PACKAGES=()
 
@@ -15,29 +14,38 @@ for pkg in "${REQUIRED_PACKAGES[@]}"; do
     fi
 done
 
-# تثبيت الحزم المفقودة تلقائياً
 if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
     echo "⚠️ تم كشف تقنيات مفقودة: ${MISSING_PACKAGES[*]}"
     echo "⚙️ جاري التثبيت تلقائياً..."
     sudo apt update
     sudo apt install -y "${MISSING_PACKAGES[@]}"
 else
-    echo "✅ جميع تقنيات النظام الأساسية (ffmpeg, nodejs, python3) مثبتة بنجاح."
+    echo "✅ جميع تقنيات النظام الأساسية مثبتة بنجاح."
 fi
 
 echo "🔍 [2/5] جاري إعداد وتفعيل البيئة الافتراضية (Virtual Environment)..."
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$BASE_DIR"
 
-if [ ! -d "venv" ] && [ ! -d "../venv" ]; then
-    echo "⚙️ إنشاء بيئة افتراضية جديدة venv..."
-    python3 -m venv venv
-fi
-
+# تفعيل البيئة الافتراضية
 if [ -d "venv" ]; then
     source venv/bin/activate
 elif [ -d "../venv" ]; then
     source ../venv/bin/activate
+else
+    echo "⚙️ إنشاء بيئة افتراضية جديدة venv..."
+    python3 -m venv venv
+    source venv/bin/activate
+fi
+
+# التوجه تلقائياً إلى المجلد الذي يحتوي على manage.py
+if [ ! -f "manage.py" ] && [ -d "music_project" ]; then
+    cd music_project
+fi
+
+if [ ! -f "manage.py" ]; then
+    echo "❌ خطأ: لم يتم العثور على ملف manage.py!"
+    exit 1
 fi
 
 echo "🔍 [3/5] جاري فحص وتحديث مكتبات Python المطلوبة..."
